@@ -77,12 +77,14 @@ class Instruction:
         if self.opcode == Opcode.ADD:
             program.write_memory(
                 self.parameters[2].get_value(program, writable=True),
-                self.parameters[0].get_value(program) + self.parameters[1].get_value(program),
+                self.parameters[0].get_value(program)
+                + self.parameters[1].get_value(program),
             )
         elif self.opcode == Opcode.MUL:
             program.write_memory(
                 self.parameters[2].get_value(program, writable=True),
-                self.parameters[0].get_value(program) * self.parameters[1].get_value(program),
+                self.parameters[0].get_value(program)
+                * self.parameters[1].get_value(program),
             )
         elif self.opcode == Opcode.STORE:
             address = self.parameters[0].get_value(program, writable=True)
@@ -92,9 +94,7 @@ class Instruction:
             )
         elif self.opcode == Opcode.LOAD:
             value = self.parameters[0].get_value(program)
-            print(
-                f"Output value: {value}"
-            )
+            print(f"Output value: {value}")
         elif self.opcode == Opcode.HALT:
             raise StopIteration()
         else:

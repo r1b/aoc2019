@@ -68,9 +68,7 @@ def find_santa(filename):
                 if space_object.name == "SAN":
                     return cur_path.steps
                 if space_object not in seen_objects:
-                    next_paths.append(
-                        TransferPath(space_object, cur_path.steps + 1)
-                    )
+                    next_paths.append(TransferPath(space_object, cur_path.steps + 1))
 
 
 print(find_santa("input.txt"))
