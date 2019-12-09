@@ -1,4 +1,4 @@
 #!/bin/bash -eu
 
-flake8 --max-line-length 120 .
 black .
+flake8 --max-line-length 120 .

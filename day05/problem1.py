@@ -11,8 +11,16 @@ class Opcode(IntEnum):
 
     @classmethod
     def parse(cls, raw_opcode):
-        return int(value.lstrip('0'))
+        return int(raw_opcode.lstrip("0"))
 
+
+OPCODE_PARAMETER_COUNT = {
+    Opcode.ADD: 3,
+    Opcode.MUL: 3,
+    Opcode.STORE: 1,
+    Opcode.LOAD: 1,
+    Opcode.HALT: 0,
+}
 
 
 class Mode(IntEnum):
@@ -20,71 +28,131 @@ class Mode(IntEnum):
     IMMEDIATE = 1
 
     @classmethod
-    def parse(cls, value):
-        return int(value)
+    def parse(cls, raw_mode):
+        return int(raw_mode)
+
 
 @dataclass
 class Parameter:
     mode: Mode
-    value: Optional[int]
+    value: int
+
+    def get_value(self, program, writable=False):
+        if writable or self.mode == Mode.IMMEDIATE:
+            return self.value
+        else:
+            return program.read_memory(self.value)
+
+    def __repr__(self):
+        return f"Parameter(mode={Mode(self.mode).name}, value={self.value})"
 
 
 @dataclass
 class Instruction:
     opcode: Opcode
     parameters: [Parameter]
+
     @classmethod
-    def parse(cls, value):
-        pass
+    def parse(cls, program):
+        raw_instruction = str(program.read_memory(program.ip))
+        opcode = Opcode.parse(raw_instruction[-2:])
+
+        parameter_modes = [Mode.POSITION] * OPCODE_PARAMETER_COUNT[opcode]
+        for i, raw_mode in enumerate(raw_instruction[:-2][::-1]):
+            parameter_modes[i] = Mode.parse(raw_mode)
+
+        instruction = cls(
+            opcode,
+            [
+                Parameter(mode, program.read_memory(program.ip + i + 1))
+                for i, mode in enumerate(parameter_modes)
+            ],
+        )
+
+        print(instruction)
+
+        return instruction
+
+    def execute(self, program):
+        if self.opcode == Opcode.ADD:
+            program.write_memory(
+                self.parameters[2].get_value(program, writable=True),
+                self.parameters[0].get_value(program) + self.parameters[1].get_value(program),
+            )
+        elif self.opcode == Opcode.MUL:
+            program.write_memory(
+                self.parameters[2].get_value(program, writable=True),
+                self.parameters[0].get_value(program) * self.parameters[1].get_value(program),
+            )
+        elif self.opcode == Opcode.STORE:
+            address = self.parameters[0].get_value(program, writable=True)
+            value = int(input(f"Input value for address={address}: "))
+            program.write_memory(
+                address, value,
+            )
+        elif self.opcode == Opcode.LOAD:
+            value = self.parameters[0].get_value(program)
+            print(
+                f"Output value: {value}"
+            )
+        elif self.opcode == Opcode.HALT:
+            raise StopIteration()
+        else:
+            raise ValueError(f"Invalid opcode={self.opcode}")
+
+        program.step(len(self))
 
     def __len__(self):
-        return len(self.parameters) + 1
+        return OPCODE_PARAMETER_COUNT[self.opcode] + 1
+
+    def __str__(self):
+        return f"Instruction(opcode={Opcode(self.opcode).name} parameters={self.parameters} size={len(self)})"
 
 
-def parse_instruction(program, ip):
-    value = str(program[ip])
-    opcode, parameter_modes = Opcode.parse(value[-2:]), [Mode.parse(raw_mode) for raw_mode in value[:-2][::-1]]
+@dataclass(init=False)
+class Program:
+    memory: [int]
+    ip: int
 
-def exec_program(program):
-    ip = 0
+    def __init__(self, memory, ip=0):
+        self.memory = memory
+        self.ip = ip
 
-    while True:
-        instruction = parse_instruction(program, ip)
-        ip = exec_instruction(program, ip, instruction)
+    @property
+    def result(self):
+        return self.memory[0]
 
-        if opcode == Opcode.ADD:
-            program[program[ip + 3]] = (
-                program[program[ip + 1]] + program[program[ip + 2]]
-            )
-        elif opcode == Opcode.MUL:
-            program[program[ip + 3]] = (
-                program[program[ip + 1]] * program[program[ip + 2]]
-            )
-        elif opcode == Opcode.HALT:
-            break
-        else:
-            raise ValueError("You goofed", opcode)
+    def read_memory(self, address):
+        return self.memory[address]
 
-        ip += 4
+    def write_memory(self, address, value):
+        print(f"Wrote {value} to {address}")
+        self.memory[address] = value
 
-    return program[0]
+    def step(self, num_values):
+        self.ip += num_values
 
-
-def find_inputs():
-    for noun in range(100):
-        for verb in range(100):
-            program = [
+    @classmethod
+    def parse(cls, filename):
+        return cls(
+            [
                 int(instruction)
-                for instruction in open("input.txt").readline().strip().split(",")
+                for instruction in open(filename).readline().strip().split(",")
             ]
+        )
 
-            program[1] = noun
-            program[2] = verb
+    @classmethod
+    def execute(cls, filename):
+        program = cls.parse(filename)
 
-            result = run_program(program)
+        while True:
+            instruction = Instruction.parse(program)
+            try:
+                instruction.execute(program)
+            except StopIteration:
+                break
 
-            if result == 19690720:
-                return 100 * noun + verb
+        return program.result
 
 
-print(find_inputs())
+Program.execute("input.txt")
