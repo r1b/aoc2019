@@ -29,7 +29,7 @@ class ImageLayer:
     def __and__(self, other):
         for i in range(IMAGE_HEIGHT):
             for j in range(IMAGE_WIDTH):
-                other[(i,j)] = self.normalize_pixel(self[(i,j)], other[(i,j)])
+                other[(i, j)] = self.normalize_pixel(self[(i, j)], other[(i, j)])
         return other
 
     def __getitem__(self, key):
@@ -72,14 +72,17 @@ class Image:
         for i in range(len(self.layers) - 1):
             normalized_layer = self.layers[i] & self.layers[i + 1]
 
-        image = Image_.new('RGB', (IMAGE_WIDTH, IMAGE_HEIGHT), "black")
+        image = Image_.new("RGB", (IMAGE_WIDTH, IMAGE_HEIGHT), "black")
         pixels = image.load()
 
         for i in range(IMAGE_WIDTH):
             for j in range(IMAGE_HEIGHT):
                 # XXX: Lol rows / columns are reversed in our layer
-                pixels[i,j] = (255,255,255) if normalized_layer[(j,i)] == 0 else (0,0,0)
+                pixels[i, j] = (
+                    (255, 255, 255) if normalized_layer[(j, i)] == 0 else (0, 0, 0)
+                )
 
         image.show()
+
 
 Image.parse("input.txt").decode()
