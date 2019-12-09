@@ -32,6 +32,7 @@ class ImageLayer:
                 other[(i, j)] = self.normalize_pixel(self[(i, j)], other[(i, j)])
         return other
 
+    # FIXME: Can we just use *args like Pillow?
     def __getitem__(self, key):
         i, j = key
         return self.pixels[i][j]
